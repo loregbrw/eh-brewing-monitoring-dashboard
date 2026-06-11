@@ -1,0 +1,32 @@
+﻿@page "/"
+@using EHBrewingMonitoringDashboard.DTOs
+@using EHBrewingMonitoringDashboard.Services
+
+@inject DashboardService DashboardService
+
+<h1>Dashboard</h1>
+
+@if (fermenters is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @foreach (var fermenter in fermenters)
+    {
+        <div>
+            <h3>@fermenter.Name</h3>
+        </div>
+    }
+}
+
+@code {
+
+    private List<FermenterOverviewDto> fermenters = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        fermenters = await DashboardService.GetFermentersOverviewAsync();
+    }
+
+}

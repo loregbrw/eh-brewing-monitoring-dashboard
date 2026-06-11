@@ -17,3 +17,14 @@ The application is structured around three main entities:
 ### Entity Relationship Diagram
 
 ![Entity Relationship Diagram](docs/image.png)
+
+## For Development
+
+Example `appsettings.**.json`:
+```
+{
+    "ConnectionStrings": {
+        "DefaultConnection": "Host=localhost;Database=dashboard;Username=postgres;Password=password"
+    }
+}
+```

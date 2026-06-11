@@ -1,5 +1,6 @@
 using EHBrewingMonitoringDashboard.Components;
 using EHBrewingMonitoringDashboard.Data;
+using EHBrewingMonitoringDashboard.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddScoped<DashboardService>();
 
 var app = builder.Build();
 
