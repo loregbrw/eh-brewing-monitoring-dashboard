@@ -1,4 +1,4 @@
-using eh_brewing_monitoring_dashboard.Components;
+using EHBrewingMonitoringDashboard.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
