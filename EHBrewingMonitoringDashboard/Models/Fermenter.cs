@@ -1,12 +1,11 @@
-﻿namespace FermentationDashboard.Models;
+﻿namespace EHBrewingMonitoringDashboard.Models;
 
 public class Fermenter
 {
-    public Guid Id { get; set; }
-
-    public string Name { get; set; } = "";
-
-    public bool Active { get; set; }
-
+    public Guid Id { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? DeletedAt { get; set; }
+    public required string Name { get; set; }
+    public bool Active { get; set; } = true;
     public ICollection<Sensor> Sensors { get; set; } = [];
 }
