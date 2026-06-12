@@ -2,48 +2,21 @@
     display: flex;
     justify-content: center;
     align-items: center;
-
-    margin-top: 50px;
+    margin-top: 100px;
+    height: 100%;
 }
 
-.card-container {
-    display: flex;
-    flex-wrap: wrap;
-
-    gap: 10px;
-}
-
-.card {
-    padding: 7px;
-    width: fit-content;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    gap: 5px;
-    background-color: black;
-
+.fermenter-card {
     cursor: pointer;
-    transition: ease 200ms;
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
 }
 
-.card:hover {
-    scale: 103%;
-    filter: brightness(150%)
-}
+.fermenter-card:hover {
+    transform: translateY(-4px);
 
-.card-title {
-    color: #fff;
-    opacity: 50%;
-    font-size: .8rem;
-}
-
-.card-temperature {
-    font-size: 1.2rem;
-    padding: 0 35px;
-}
-
-.graph {
-    background-color: red !important;
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, .25);
 }

@@ -1,48 +1,216 @@
 ﻿@page "/"
 
+@using ApexCharts
 @using EHBrewingMonitoringDashboard.DTOs
+@using EHBrewingMonitoringDashboard.Enums
 @using EHBrewingMonitoringDashboard.Services
 @using MudBlazor
 
 @inject DashboardService DashboardService
 
-@if (fermenters is null)
-{
-    <div class="loading">
-        <MudProgressCircular Color="Color.Warning" Indeterminate="true" />
-    </div>
-}
-else if (!fermenters.Any())
-{
-    <span>Nenhum fermentador encontrado...</span>
-}
-else
-{
-    <div class="card-container">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
-        @foreach (var fermenter in fermenters)
-        {
-            <div class="card">
-                <span class="card-title">@fermenter.Name</span>
-                <span class="card-temperature">@GetFermenterTemperature(fermenter)</span>
-            </div>
-        }
-    </div>
+    @if (fermenters is null)
+    {
+        <div class="loading">
+            <MudProgressCircular Indeterminate="true" />
+        </div>
+    }
+    else if (!fermenters.Any())
+    {
+        <MudAlert Severity="Severity.Info">
+            Nenhum fermentador encontrado.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+
+            @foreach (var fermenter in fermenters)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+
+                    <MudPaper
+                        Elevation="2"
+                        Class="pa-4 fermenter-card">
+
+                        <MudText
+                            Typo="Typo.subtitle2"
+                            Align="MudBlazor.Align.Center">
+
+                            @fermenter.Name
+
+                        </MudText>
+
+                        <div class="d-flex justify-center align-center mt-2">
+
+                            <MudIcon
+                                Icon="@Icons.Material.Filled.Thermostat"
+                                Color="MudBlazor.Color.Error" />
+
+                            <MudText
+                                Typo="Typo.h5"
+                                Class="ml-2">
+
+                                @GetReadingValue(
+                                    fermenter,
+                                    ESensorType.TEMPERATURE)
+
+                            </MudText>
+
+                        </div>
+
+                    </MudPaper>
+
+                </MudItem>
+            }
+
+        </MudGrid>
+
+        <MudGrid Class="mt-6" Spacing="3">
+
+            <MudItem xs="12" lg="8">
+
+                <MudPaper Class="pa-4">
+
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        Temperatura Atual dos Fermentadores
+                    </MudText>
+
+                    <ApexChart
+                        TItem="TemperaturePoint"
+                        Height="350">
+
+                        <ApexPointSeries
+                            TItem="TemperaturePoint"
+                            Items="temperatureData"
+                            Name="Temperatura"
+                            SeriesType="SeriesType.Bar"
+                            XValue="e => e.Name"
+                            YValue="e => e.Value" />
+
+                    </ApexChart>
+
+                </MudPaper>
+
+            </MudItem>
+
+            <MudItem xs="12" lg="4">
+
+                <MudPaper Class="pa-4">
+
+                    <MudText Typo="Typo.h6" Class="mb-4">
+                        Sensores por Tipo
+                    </MudText>
+
+                    <ApexChart
+                        TItem="SensorSlice"
+                        Height="350">
+
+                        <ApexPointSeries
+                            TItem="SensorSlice"
+                            Items="sensorData"
+                            Name="Sensores"
+                            SeriesType="SeriesType.Donut"
+                            XValue="e => e.Name"
+                            YValue="e => e.Value" />
+
+                    </ApexChart>
+
+                </MudPaper>
+
+            </MudItem>
+
+        </MudGrid>
+    }
+
+</MudContainer>
+
+<style>
+.loading {
+    display: flex;
+    justify-content: center;
+    margin-top: 80px;
 }
+
+.fermenter-card {
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.fermenter-card:hover {
+    transform: translateY(-4px);
+}
+</style>
 
 @code {
-    private List<FermenterOverviewDto>? fermenters = null;
+
+    private List<FermenterOverviewDto>? fermenters;
+
+    private List<TemperaturePoint> temperatureData = [];
+
+    private List<SensorSlice> sensorData = [];
 
     protected override async Task OnInitializedAsync()
     {
-        fermenters = await DashboardService.GetFermentersOverviewAsync();
-        Console.WriteLine(fermenters);
+        fermenters =
+            await DashboardService.GetFermentersOverviewAsync();
+
+        if (fermenters is null)
+            return;
+
+        temperatureData =
+            fermenters
+                .Select(f => new TemperaturePoint
+                {
+                    Name = f.Name,
+                    Value = f.Readings
+                        .FirstOrDefault(r =>
+                            r.Type == ESensorType.TEMPERATURE)
+                        ?.Value ?? 0
+                })
+                .ToList();
+
+        sensorData =
+        [
+            new()
+            {
+                Name = "Temperature",
+                Value = fermenters.Sum(f =>
+                    f.Readings.Count(r =>
+                        r.Type == ESensorType.TEMPERATURE))
+            },
+
+            new()
+            {
+                Name = "Density",
+                Value = fermenters.Sum(f =>
+                    f.Readings.Count(r =>
+                        r.Type == ESensorType.DENSITY))
+            }
+        ];
     }
 
-    private string GetFermenterTemperature(FermenterOverviewDto dto)
+    private string GetReadingValue(
+        FermenterOverviewDto dto,
+        ESensorType type)
     {
-        var reading = dto.Readings.FirstOrDefault(r => r.Type == Enums.ESensorType.TEMPERATURE);
+        var reading =
+            dto.Readings.FirstOrDefault(r =>
+                r.Type == type);
 
         return reading?.DisplayValue ?? "-";
+    }
+
+    public sealed class TemperaturePoint
+    {
+        public string Name { get; init; } = "";
+        public decimal Value { get; init; }
+    }
+
+    public sealed class SensorSlice
+    {
+        public string Name { get; init; } = "";
+        public decimal Value { get; init; }
     }
 }

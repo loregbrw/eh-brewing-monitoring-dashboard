@@ -7,11 +7,11 @@ using Microsoft.EntityFrameworkCore;
 public class DashboardService(IDbContextFactory<AppDbContext> factory)
 {
     private readonly IDbContextFactory<AppDbContext> _factory = factory;
+
     public async Task<DateTime?> GetLasAtt()
     {
         await using var context = await _factory.CreateDbContextAsync();
-
-        return await context.Measures.AsNoTracking().MaxAsync(m => m.RecordedAt);
+        return await context.Measures.AsNoTracking().MaxAsync(m => (DateTime?)m.RecordedAt);
     }
 
     public async Task<List<FermenterOverviewDto>> GetFermentersOverviewAsync()
@@ -45,5 +45,25 @@ public class DashboardService(IDbContextFactory<AppDbContext> factory)
             .ToListAsync();
 
         return fermenters;
+    }
+
+    public async Task<List<MeasureHistoryDto>> GetFermenterHistoryAsync(Guid fermenterId, DateTime startDate)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        // Busca o histórico de medidas de sensores ativos do fermentador específico a partir de uma data
+        var history = await context.Measures.AsNoTracking()
+            .Where(m => m.Sensor.FermenterId == fermenterId 
+                     && m.Sensor.Active 
+                     && m.RecordedAt >= startDate)
+            .OrderBy(m => m.RecordedAt)
+            .Select(m => new MeasureHistoryDto(
+                m.Sensor.Type,
+                m.Value,
+                m.RecordedAt
+            ))
+            .ToListAsync();
+
+        return history;
     }
 }

@@ -28,7 +28,7 @@
 
 <body>
 
-    <MudThemeProvider />
+    <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
     <MudPopoverProvider />
     <MudDialogProvider />
     <MudSnackbarProvider />
@@ -38,6 +38,13 @@
 
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="_content/Blazor-ApexCharts/js/apexcharts-blazor.js"></script>
+    <script src="_content/ApexCharts/apexcharts-blazor.js"></script>
 </body>
 
 </html>
+
+@code {
+    private bool _isDarkMode = true;
+    private MudTheme _theme = new();
+}
