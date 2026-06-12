@@ -2,10 +2,13 @@ using EHBrewingMonitoringDashboard.Components;
 using EHBrewingMonitoringDashboard.Data;
 using EHBrewingMonitoringDashboard.Services;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddMudServices();
+
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )

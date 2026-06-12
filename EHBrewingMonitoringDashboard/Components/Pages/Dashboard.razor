@@ -1,32 +1,48 @@
 ﻿@page "/"
+
 @using EHBrewingMonitoringDashboard.DTOs
 @using EHBrewingMonitoringDashboard.Services
+@using MudBlazor
 
 @inject DashboardService DashboardService
 
-<h1>Dashboard</h1>
-
 @if (fermenters is null)
 {
-    <p>Loading...</p>
+    <div class="loading">
+        <MudProgressCircular Color="Color.Warning" Indeterminate="true" />
+    </div>
+}
+else if (!fermenters.Any())
+{
+    <span>Nenhum fermentador encontrado...</span>
 }
 else
 {
-    @foreach (var fermenter in fermenters)
-    {
-        <div>
-            <h3>@fermenter.Name</h3>
-        </div>
-    }
+    <div class="card-container">
+
+        @foreach (var fermenter in fermenters)
+        {
+            <div class="card">
+                <span class="card-title">@fermenter.Name</span>
+                <span class="card-temperature">@GetFermenterTemperature(fermenter)</span>
+            </div>
+        }
+    </div>
 }
 
 @code {
-
-    private List<FermenterOverviewDto> fermenters = [];
+    private List<FermenterOverviewDto>? fermenters = null;
 
     protected override async Task OnInitializedAsync()
     {
         fermenters = await DashboardService.GetFermentersOverviewAsync();
+        Console.WriteLine(fermenters);
     }
 
+    private string GetFermenterTemperature(FermenterOverviewDto dto)
+    {
+        var reading = dto.Readings.FirstOrDefault(r => r.Type == Enums.ESensorType.TEMPERATURE);
+
+        return reading?.DisplayValue ?? "-";
+    }
 }
