@@ -114,4 +114,66 @@ public class DashboardService(IDbContextFactory<AppDbContext> factory, SensorSer
             );
         })];
     }
+
+    public async Task<List<MeasureHistoryDto>> GetFermenterHistoryAsync(Guid fermenterId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var history = await context.Fermenters
+            .AsNoTracking()
+            .Where(f => f.Id == fermenterId)
+            .SelectMany(f => f.Sensors)
+            .SelectMany(s => s.Measures.Select(m => new MeasureHistoryDto
+            (
+                m.RecordedAt,
+                s.Type,
+                m.Value,
+                s.MeasureUnit
+            )))
+            .OrderByDescending(h => h.RecordedAt)
+            .Take(100)
+            .ToListAsync();
+
+        return history;
+    }
+
+    public async Task<FermenterDetailsDto?> GetFermenterDetailsAsync(Guid id)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        return await context.Fermenters.AsNoTracking()
+            .Where(f => f.Id == id)
+            .Select(f => new FermenterDetailsDto(
+                f.Id,
+                f.Name,
+                f.Active,
+
+                f.Sensors
+                    .OrderBy(s => s.Type)
+                    .Select(s => new SensorDetailsDto(
+                        s.Id,
+                        s.Type,
+                        s.SerialNumber,
+                        s.Active,
+                        s.InstalledAt,
+                        s.LastMaintenanceAt,
+                        s.IdealMinValue,
+                        s.IdealMaxValue,
+                        s.WarningTolerance,
+                        s.MeasureUnit,
+
+                        s.Measures
+                            .OrderByDescending(m => m.RecordedAt)
+                            .Select(m => (decimal?)m.Value)
+                            .FirstOrDefault(),
+
+                        s.Measures
+                            .OrderByDescending(m => m.RecordedAt)
+                            .Select(m => (DateTime?)m.RecordedAt)
+                            .FirstOrDefault()
+                    ))
+                    .ToList()
+            ))
+            .FirstOrDefaultAsync();
+    }
 }

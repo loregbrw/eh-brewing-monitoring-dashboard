@@ -1,60 +1,38 @@
-@using EHBrewingMonitoringDashboard.DTOs
-@using EHBrewingMonitoringDashboard.Services
 @using MudBlazor
-
-@inject DashboardService DashboardService
-
-<MudDialog>
+<MudDialog Style="height: 400px">
     <DialogContent>
-        @if (isLoading)
+        @if (_loading)
         {
-            <div class="d-flex justify-center my-4">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </div>
-        }
-        else if (readings != null && readings.Any())
-        {
-            <MudTable Items="@readings" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm"
-                      Style="background-color: #1c1c1c; color: white;">
-                <HeaderContent>
-                    <MudTh Style="color: #556b2f;">Data/Hora</MudTh>
-                    <MudTh Style="color: #556b2f;">Tipo</MudTh>
-                    <MudTh Style="color: #556b2f;">Valor</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Data/Hora">@context.RecordedAt.ToString("dd/MM/yyyy HH:mm")</MudTd>
-                    <MudTd DataLabel="Tipo">@context.SensorType</MudTd>
-                    <MudTd DataLabel="Valor">@context.Value.ToString("F2") @context.Unit</MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager InfoFormat="{first_item}-{last_item} de {all_items}" />
-                </PagerContent>
-            </MudTable>
+            <MudProgressCircular Indeterminate="true"></MudProgressCircular>
         }
         else
         {
-            <MudText>Nenhum dado histórico encontrado para este fermentador.</MudText>
+            <MudText Style="white-space: pre-wrap;">@_licenseText</MudText>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Color="Color.Primary">Fechar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Ok">Accept</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    private string _licenseText;
+    private bool _loading;
 
-    [Parameter] public Guid FermenterId { get; set; }
-    [Parameter] public string FermenterName { get; set; } = string.Empty;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
 
-    private List<MeasureHistoryDto>? readings;
-    private bool isLoading = true;
+    [Inject]
+    private HttpClient HttpClient { get; set; }
 
-    @* protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        readings = await DashboardService.GetFermenterHistoryAsync(FermenterId);
-        isLoading = false;
-    } *@
+        await base.OnInitializedAsync();
+        _loading = true;
+        var response = await HttpClient.GetAsync("https://raw.githubusercontent.com/MudBlazor/MudBlazor/master/LICENSE");
+        _licenseText = await response.Content.ReadAsStringAsync();
+        _loading = false;
+    }
 
-    private void Close() => MudDialog.Cancel();
+    private void Ok() => MudDialog.Close(DialogResult.Ok(true));
 }

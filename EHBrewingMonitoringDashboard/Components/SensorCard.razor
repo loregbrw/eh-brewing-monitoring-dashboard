@@ -1,0 +1,48 @@
+@using EHBrewingMonitoringDashboard.DTOs
+@using MudBlazor
+
+<MudPaper Elevation="1" Class="pa-4 mb-3">
+
+    <MudStack>
+
+        <MudText Typo="Typo.h6">@($"{Sensor.SerialNumber} ({Sensor.Type})")</MudText>
+        <MudText Typo="Typo.body2">@(Sensor.Active ? "🟢 Ativo" : "🔴 Inativo")</MudText>
+
+        <MudText Typo="Typo.body2">
+            Instalação: @Sensor.InstalledAt.ToString("dd/MM/yyyy")
+        </MudText>
+
+        <MudText Typo="Typo.body2">
+            Última manutenção: @(Sensor.LastMaintenanceAt?.ToString("dd/MM/yyyy") ?? "Nenhuma até agora")
+        </MudText>
+
+        <MudText Typo="Typo.body2">
+            Faixa ideal: @($"{Sensor.IdealMin?.ToString("0.##")}{Sensor.MeasureUnit}" ?? "x") - @($"{Sensor.IdealMax?.ToString("0.##")}{Sensor.MeasureUnit}" ?? "x")
+        </MudText>
+
+        <MudText Typo="Typo.h6">
+            @(Sensor.LastValue.HasValue ? $"{Sensor.LastValue?.ToString("0.##")}{Sensor.MeasureUnit}" : "Nenhuma leitura")
+        </MudText>
+
+        @* <MudButton Variant="Variant.Outlined" OnClick="ToggleHistory">Histórico</MudButton>
+
+        @if (showHistory)
+        {
+            <SensorHistory SensorId="Sensor.Id" />
+        } *@
+
+    </MudStack>
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public required SensorDetailsDto Sensor { get; set; }
+
+    private bool showHistory;
+
+    private void ToggleHistory()
+    {
+        showHistory = !showHistory;
+    }
+}
