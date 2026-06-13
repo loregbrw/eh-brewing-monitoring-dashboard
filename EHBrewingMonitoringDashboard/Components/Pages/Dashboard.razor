@@ -11,23 +11,34 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
-    @if (fermenters is null)
-    {
-        <div class="d-flex justify-center mt-10">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-        </div>
-    }
-    else if (!fermenters.Any())
-    {
-        <MudAlert Severity="Severity.Info">Nenhum fermentador ativo encontrado.</MudAlert>
-    }
-    else
-    {
-        <MudGrid Spacing="3">
+    <MudGrid Spacing="3">
+        @if (fermenters is null)
+        {
+            @for (int i = 0; i < 4; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudPaper Elevation="2" Class="pa-4 fermenter-card" Style="background-color: #1c1c1c;">
+                        <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="60%" Class="mx-auto mb-2" />
+                        <div class="d-flex justify-center align-center mt-2">
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Circle" Width="24px" Height="24px" />
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="40%" Class="ml-2" Height="30px" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        }
+        else if (!fermenters.Any())
+        {
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info">Nenhum fermentador ativo encontrado.</MudAlert>
+            </MudItem>
+        }
+        else
+        {
             @foreach (var fermenter in fermenters)
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudPaper Elevation="2" Class="pa-4 fermenter-card">
+                    <MudPaper Elevation="2" Class="pa-4 fermenter-card" @onclick="() => OpenFermenterDetails(fermenter)">
                         <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center">
                             @fermenter.Name
                         </MudText>
@@ -43,35 +54,50 @@
                                 @GetReadingValue(temp)
                             </MudText>
                         </div>
-
                     </MudPaper>
                 </MudItem>
             }
-        </MudGrid>
-        <br />
-        <MudGrid Spacing="3" Class="mb-6">
-            <MudItem xs="12" md="6">
-                <MudPaper Elevation="3" Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;"></MudText>
+        }
+    </MudGrid>
+
+    <br />
+
+    <MudGrid Spacing="3" Class="mb-6">
+        
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="3" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Últimas leituras por fermentador</MudText>
+                
+                @if (fermenters is null)
+                {
+                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%" Height="300px" />
+                }
+                else
+                {
                     <MudChart ChartType="ChartType.Bar" ChartSeries="@allSensorsSeries" ChartLabels="@xAxisLabels"
                               ChartOptions="@chartOptions" Width="100%" Height="auto" />
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudPaper Elevation="3" Class="pa-4" Style="background-color: #1c1c1c; border: 1px solid #2b2b2b;">
-                    <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Tendência de Temperatura por Fermentador
-                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
 
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="3" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Tendência de Temperatura por Fermentador</MudText>
+
+                @if (fermenters is null)
+                {
+                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%" Height="300px" />
+                }
+                else
+                {
                     <MudChart ChartType="ChartType.Line" ChartSeries="@lineChartSeries" XAxisLabels="@xAxisLabels"
-                              ChartOptions="@chartOptions" Width="100%" Height="350px" />
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-    }
+                              ChartOptions="@chartOptions" Width="100%" />
+                }
+            </MudPaper>
+        </MudItem>
 
-    @* @if (allSensorsSeries is not null && allSensorsSeries.Any()) *@
-    @* { *@
-    @* } *@
+    </MudGrid>
+
 </MudContainer>
 
 <style>
@@ -127,7 +153,6 @@
                 });
             }
 
-            // Criando uma série de linha para Temperatura
             lineChartSeries.Add(new ChartSeries<decimal>
             {
                 Name = "Temperatura Média (°C)",
