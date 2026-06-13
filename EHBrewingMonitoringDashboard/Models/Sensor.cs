@@ -15,5 +15,8 @@ public class Sensor
     public required DateTime InstalledAt { get; set; }
     public DateTime? LastMaintenanceAt { get; set; }
     public Fermenter Fermenter { get; set; } = null!;
+    public decimal? IdealMinValue { get; set; }
+    public decimal? IdealMaxValue { get; set; }
+    public decimal? WarningTolerance { get; set; }
     public ICollection<Measure> Measures { get; set; } = [];
 }

@@ -1,27 +1,48 @@
-﻿<!DOCTYPE html>
+﻿@using MudBlazor
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+
     <ResourcePreloader />
+
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["EHBrewingMonitoringDashboard.styles.css"]" />
+
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
     <ImportMap />
+
     <link rel="shortcut icon"
           href="https://files.cdn-files-a.com/uploads/9598615/400_66cddf95bd87d.png?aspect_ratio=1:1&width=48&format=png"
           type="image/x-icon">
-    <HeadOutlet />
 
+    <HeadOutlet />
     <PageTitle>EHBrewing Dashboard</PageTitle>
 </head>
 
 <body>
+
+    <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
+    <MudPopoverProvider />
+    <MudDialogProvider />
+    <MudSnackbarProvider />
+
     <Routes />
     <ReconnectModal />
+
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 
 </html>
+
+@code {
+    private bool _isDarkMode = true;
+    private MudTheme _theme = new();
+}

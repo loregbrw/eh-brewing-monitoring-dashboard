@@ -1,14 +1,16 @@
 ﻿namespace EHBrewingMonitoringDashboard.DTOs;
 
+using EHBrewingMonitoringDashboard.Enums;
+
 public record SensorReadingDto
 (
-    Guid Id,
-    string SerialNumber,
-    bool Active,
+    ESensorType Type,
     decimal? Value,
     string? MeasureUnit,
-    DateTime? RecordedAt
+    DateTime? RecordedAt,
+    EStatus Status,
+    string? SerialNumber = null
 )
 {
-    public string DisplayValue => Value.HasValue ? $"{Value:F2} {MeasureUnit}" : "N/A";
+    public string DisplayValue => Value.HasValue ? $"{Value:F2}{MeasureUnit}" : "N/A";
 }

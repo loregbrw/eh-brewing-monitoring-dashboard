@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EHBrewingMonitoringDashboard.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260611130543_InitialCreate")]
+    [Migration("20260613114609_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -117,6 +117,14 @@ namespace EHBrewingMonitoringDashboard.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("fermenter_id");
 
+                    b.Property<decimal?>("IdealMaxValue")
+                        .HasColumnType("numeric")
+                        .HasColumnName("ideal_max_value");
+
+                    b.Property<decimal?>("IdealMinValue")
+                        .HasColumnType("numeric")
+                        .HasColumnName("ideal_min_value");
+
                     b.Property<DateTime>("InstalledAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("installed_at");
@@ -140,6 +148,10 @@ namespace EHBrewingMonitoringDashboard.Migrations
                     b.Property<short>("Type")
                         .HasColumnType("smallint")
                         .HasColumnName("type");
+
+                    b.Property<decimal?>("WarningTolerance")
+                        .HasColumnType("numeric")
+                        .HasColumnName("warning_tolerance");
 
                     b.HasKey("Id");
 

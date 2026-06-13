@@ -1,32 +1,216 @@
 ﻿@page "/"
+
 @using EHBrewingMonitoringDashboard.DTOs
+@using EHBrewingMonitoringDashboard.Enums
 @using EHBrewingMonitoringDashboard.Services
+@using EHBrewingMonitoringDashboard.Components
+@using MudBlazor
 
 @inject DashboardService DashboardService
+@inject IDialogService DialogService
 
-<h1>Dashboard</h1>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
-@if (fermenters is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    @foreach (var fermenter in fermenters)
-    {
-        <div>
-            <h3>@fermenter.Name</h3>
-        </div>
+    <MudGrid Spacing="3">
+        @if (fermenters is null)
+        {
+            @for (int i = 0; i < 4; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudPaper Elevation="2" Class="pa-4 fermenter-card" Style="background-color: #1c1c1c;">
+                        <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="60%"
+                                     Class="mx-auto mb-2" />
+                        <div class="d-flex justify-center align-center mt-2">
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Circle" Width="24px"
+                                         Height="24px" />
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="40%" Class="ml-2"
+                                         Height="30px" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        }
+        else if (!fermenters.Any())
+        {
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info">Nenhum fermentador ativo encontrado.</MudAlert>
+            </MudItem>
+        }
+        else
+        {
+            @foreach (var fermenter in fermenters)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudPaper Elevation="2" Class="pa-4 fermenter-card" @onclick="() => OpenFermenterDetails(fermenter)">
+                        <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center">
+                            @fermenter.Name
+                        </MudText>
+
+                        <div class="d-flex justify-center align-center mt-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="MudBlazor.Color.Error" />
+
+                            @{
+                                var temp = fermenter.Readings.FirstOrDefault(r => r.Type == ESensorType.TEMPERATURE);
+                            }
+
+                            <MudText Typo="Typo.h5" Class="ml-2" Color="@GetStatusColor(temp?.Status ?? EStatus.NoData)">
+                                @GetReadingValue(temp)
+                            </MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+
+    <br />
+
+    <MudGrid Spacing="3" Class="mb-6">
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="3" Class="pa-4" Height="100%">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Últimas leituras por fermentador</MudText>
+
+                @if (fermenters is null)
+                {
+                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%"
+                                 Height="auto" />
+                }
+                else
+                {
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@allSensorsSeries" ChartLabels="@xAxisLabels"
+                              ChartOptions="@chartOptions" Width="100%" Height="auto" />
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="3" Class="pa-4" Height="100%">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Evolução de Temperatura (Tempo Real)
+                </MudText>
+
+                @if (!statusSeries.Any())
+                {
+                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%"
+                                 Height="auto" />
+                }
+                else
+                {
+                    <MudChart ChartType="ChartType.StackedBar" ChartSeries="@statusSeries" ChartLabels="@xAxisLabels"
+                              ChartOptions="@statusChartOptions" Width="100%" Height="auto" />
+
+                }
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+
+</MudContainer>
+
+<style>
+    body {
+        background-color: #121212;
     }
-}
+
+    .fermenter-card {
+        cursor: pointer;
+        transition: all .2s ease-in-out;
+    }
+
+    .fermenter-card:hover {
+        transform: translateY(-3px);
+    }
+</style>
 
 @code {
+    private List<FermenterOverviewDto>? fermenters;
+    private List<ChartSeries<decimal>> allSensorsSeries = new();
+    private string[] xAxisLabels = Array.Empty<string>();
 
-    private List<FermenterOverviewDto> fermenters = [];
+    private List<FermenterStatusCountDto>? statusCounts;
+    private List<ChartSeries<int>> statusSeries = new();
+
+    private ChartOptions chartOptions = new()
+    {
+        ShowToolTips = true
+    };
+
+    private ChartOptions statusChartOptions = new()
+    {
+        ChartPalette = new[] { "#1D9E75", "#EF9F27", "#E24B4A", "#888780" },
+        ShowToolTips = true
+    };
 
     protected override async Task OnInitializedAsync()
     {
+        // 1. Carrega os cards e o gráfico de barras (Dados atuais)
         fermenters = await DashboardService.GetFermentersOverviewAsync();
+
+        if (fermenters is not null && fermenters.Any())
+        {
+            xAxisLabels = fermenters.Select(f => f.Name).ToArray();
+
+            var allSensorTypes = fermenters
+                .SelectMany(f => f.Readings)
+                .Select(r => r.Type)
+                .Distinct()
+                .ToList();
+
+            foreach (var type in allSensorTypes)
+            {
+                allSensorsSeries.Add(new ChartSeries<decimal>
+                {
+                    Name = type.ToString(),
+                    Data = fermenters.Select(f => GetReadingDecimal(f, type)).ToArray()
+                });
+            }
+        }
+
+        statusCounts = await DashboardService.GetFermentersStatusCountAsync();
+
+        if (statusCounts.Any())
+        {
+            statusSeries =
+            [
+                new() { Name = "Ok", Data = statusCounts.Select(s => s.Ok).ToArray() },
+                new() { Name = "Atenção", Data = statusCounts.Select(s => s.Warning).ToArray() },
+                new() { Name = "Crítico", Data = statusCounts.Select(s => s.Critical).ToArray() },
+                new() { Name = "Sem dados",Data = statusCounts.Select(s => s.NoData).ToArray() }
+            ];
+        }
     }
 
+    private decimal GetReadingDecimal(FermenterOverviewDto dto, ESensorType type)
+    {
+        return dto.Readings.FirstOrDefault(r => r.Type == type)?.Value ?? 0m;
+    }
+
+    private string GetReadingValue(SensorReadingDto? reading)
+    {
+        return reading?.DisplayValue ?? "-";
+    }
+
+    private MudBlazor.Color GetStatusColor(EStatus status)
+    {
+        return status switch
+        {
+            EStatus.Ok => MudBlazor.Color.Success,
+            EStatus.Warning => MudBlazor.Color.Warning,
+            EStatus.Critical => MudBlazor.Color.Error,
+            _ => MudBlazor.Color.Default
+        };
+    }
+
+    private async Task OpenFermenterDetails(FermenterOverviewDto fermenter)
+    {
+        var parameters = new DialogParameters
+        {
+            { "FermenterId", fermenter.Id },
+            { "FermenterName", fermenter.Name }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        await DialogService.ShowAsync<FermenterHistoryDialog>($"Histórico: {fermenter.Name}", parameters, options);
+    }
 }

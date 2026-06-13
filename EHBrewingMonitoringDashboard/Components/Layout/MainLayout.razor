@@ -1,5 +1,7 @@
-﻿@using MudBlazor
+﻿@using EHBrewingMonitoringDashboard.Services
 @inherits LayoutComponentBase
+
+@inject DashboardService DashboardService
 
 <div class="page">
     <div class="sidebar">
@@ -9,7 +11,7 @@
     <main>
         <div class="top-row">
             <span class="navbar-brand">Dashboard</span>
-            <span class="att">Última atualização: xx/xx/xxxx xx:xx:xxxxx</span>
+            <span class="att">Última atualização: @LastAttDate</span>
         </div>
 
         <article class="content">
@@ -23,3 +25,13 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code
+{
+    private DateTime? LastAttDate = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LastAttDate = await DashboardService.GetLasAtt();
+    }
+}
