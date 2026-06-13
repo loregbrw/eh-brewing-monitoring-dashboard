@@ -18,10 +18,13 @@
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
                     <MudPaper Elevation="2" Class="pa-4 fermenter-card" Style="background-color: #1c1c1c;">
-                        <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="60%" Class="mx-auto mb-2" />
+                        <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="60%"
+                                     Class="mx-auto mb-2" />
                         <div class="d-flex justify-center align-center mt-2">
-                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Circle" Width="24px" Height="24px" />
-                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="40%" Class="ml-2" Height="30px" />
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Circle" Width="24px"
+                                         Height="24px" />
+                            <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Text" Width="40%" Class="ml-2"
+                                         Height="30px" />
                         </div>
                     </MudPaper>
                 </MudItem>
@@ -63,14 +66,15 @@
     <br />
 
     <MudGrid Spacing="3" Class="mb-6">
-        
+
         <MudItem xs="12" md="6">
-            <MudPaper Elevation="3" Class="pa-4">
+            <MudPaper Elevation="3" Class="pa-4" Height="100%">
                 <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Últimas leituras por fermentador</MudText>
-                
+
                 @if (fermenters is null)
                 {
-                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%" Height="300px" />
+                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%"
+                                 Height="auto" />
                 }
                 else
                 {
@@ -81,17 +85,20 @@
         </MudItem>
 
         <MudItem xs="12" md="6">
-            <MudPaper Elevation="3" Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Tendência de Temperatura por Fermentador</MudText>
+            <MudPaper Elevation="3" Class="pa-4" Height="100%">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Evolução de Temperatura (Tempo Real)
+                </MudText>
 
-                @if (fermenters is null)
+                @if (!statusSeries.Any())
                 {
-                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%" Height="300px" />
+                    <MudSkeleton Animation="Animation.Wave" SkeletonType="SkeletonType.Rectangle" Width="100%"
+                                 Height="auto" />
                 }
                 else
                 {
-                    <MudChart ChartType="ChartType.Line" ChartSeries="@lineChartSeries" XAxisLabels="@xAxisLabels"
-                              ChartOptions="@chartOptions" Width="100%" />
+                    <MudChart ChartType="ChartType.StackedBar" ChartSeries="@statusSeries" ChartLabels="@xAxisLabels"
+                              ChartOptions="@statusChartOptions" Width="100%" Height="auto" />
+
                 }
             </MudPaper>
         </MudItem>
@@ -120,18 +127,23 @@
     private List<ChartSeries<decimal>> allSensorsSeries = new();
     private string[] xAxisLabels = Array.Empty<string>();
 
-    private List<ChartSeries<decimal>> maintenanceSeries = new();
-    private string[] maintenanceLabels = Array.Empty<string>();
+    private List<FermenterStatusCountDto>? statusCounts;
+    private List<ChartSeries<int>> statusSeries = new();
 
     private ChartOptions chartOptions = new()
     {
-        ChartPalette = new[] { "#556b2f", "#e67e22", "#3498db", "#9b59b6" }
+        ShowToolTips = true
     };
 
-    private List<ChartSeries<decimal>> lineChartSeries = new();
+    private ChartOptions statusChartOptions = new()
+    {
+        ChartPalette = new[] { "#1D9E75", "#EF9F27", "#E24B4A", "#888780" },
+        ShowToolTips = true
+    };
 
     protected override async Task OnInitializedAsync()
     {
+        // 1. Carrega os cards e o gráfico de barras (Dados atuais)
         fermenters = await DashboardService.GetFermentersOverviewAsync();
 
         if (fermenters is not null && fermenters.Any())
@@ -152,12 +164,19 @@
                     Data = fermenters.Select(f => GetReadingDecimal(f, type)).ToArray()
                 });
             }
+        }
 
-            lineChartSeries.Add(new ChartSeries<decimal>
-            {
-                Name = "Temperatura Média (°C)",
-                Data = fermenters.Select(f => GetReadingDecimal(f, ESensorType.TEMPERATURE)).ToArray()
-            });
+        statusCounts = await DashboardService.GetFermentersStatusCountAsync();
+
+        if (statusCounts.Any())
+        {
+            statusSeries =
+            [
+                new() { Name = "Ok", Data = statusCounts.Select(s => s.Ok).ToArray() },
+                new() { Name = "Atenção", Data = statusCounts.Select(s => s.Warning).ToArray() },
+                new() { Name = "Crítico", Data = statusCounts.Select(s => s.Critical).ToArray() },
+                new() { Name = "Sem dados",Data = statusCounts.Select(s => s.NoData).ToArray() }
+            ];
         }
     }
 

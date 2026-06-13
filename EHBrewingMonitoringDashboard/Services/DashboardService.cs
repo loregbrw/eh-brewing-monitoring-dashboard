@@ -2,6 +2,7 @@
 
 using EHBrewingMonitoringDashboard.Data;
 using EHBrewingMonitoringDashboard.DTOs;
+using EHBrewingMonitoringDashboard.Enums;
 using Microsoft.EntityFrameworkCore;
 
 public class DashboardService(IDbContextFactory<AppDbContext> factory, SensorService sensorService)
@@ -66,26 +67,51 @@ public class DashboardService(IDbContextFactory<AppDbContext> factory, SensorSer
                 ))];
     }
 
-    public async Task<List<SensorMaintenanceDto>> GetTopSensorsMaintenanceAsync()
+    public async Task<List<FermenterStatusCountDto>> GetFermentersStatusCountAsync()
     {
         await using var context = await _factory.CreateDbContextAsync();
 
-        return await context.Sensors
-            .AsNoTracking()
-            .Where(s => s.Active)
-            .Select(s => new
+        var fermenters = await context.Fermenters.AsNoTracking()
+            .Where(f => f.Active)
+            .OrderBy(f => f.Name)
+            .Select(f => new
             {
-                Name = $"{s.SerialNumber} ({s.Fermenter.Name}/{s.Type})",
-                Date = s.LastMaintenanceAt ?? s.InstalledAt
+                f.Name,
+                Sensors = f.Sensors
+                    .Where(s => s.Active)
+                    .Select(s => new
+                    {
+                        Sensor = s,
+                        LastMeasure = s.Measures.OrderByDescending(m => m.RecordedAt).FirstOrDefault()
+                    })
             })
-            .ToListAsync()
-            .ContinueWith(t => t.Result
-                .Select(x => new SensorMaintenanceDto(
-                    x.Name,
-                    (DateTime.UtcNow - x.Date).Days
-                ))
-                .OrderByDescending(x => x.Days)
-                .Take(5)
-                .ToList());
+            .ToListAsync();
+
+        return [.. fermenters.Select(f =>
+        {
+            var counts = new Dictionary<EStatus, int>
+            {
+                [EStatus.Ok] = 0,
+                [EStatus.Warning] = 0,
+                [EStatus.Critical] = 0,
+                [EStatus.NoData] = 0,
+            };
+
+            foreach (var s in f.Sensors)
+            {
+                var status = s.LastMeasure is null
+                    ? EStatus.NoData
+                    : _sensorService.GetStatusByValue(s.Sensor, s.LastMeasure.Value);
+                counts[status]++;
+            }
+
+            return new FermenterStatusCountDto(
+                f.Name,
+                counts[EStatus.Ok],
+                counts[EStatus.Warning],
+                counts[EStatus.Critical],
+                counts[EStatus.NoData]
+            );
+        })];
     }
 }
