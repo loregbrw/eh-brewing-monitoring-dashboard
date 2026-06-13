@@ -1,0 +1,60 @@
+@using EHBrewingMonitoringDashboard.DTOs
+@using EHBrewingMonitoringDashboard.Services
+@using MudBlazor
+
+@inject DashboardService DashboardService
+
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <div class="d-flex justify-center my-4">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (readings != null && readings.Any())
+        {
+            <MudTable Items="@readings" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm"
+                      Style="background-color: #1c1c1c; color: white;">
+                <HeaderContent>
+                    <MudTh Style="color: #556b2f;">Data/Hora</MudTh>
+                    <MudTh Style="color: #556b2f;">Tipo</MudTh>
+                    <MudTh Style="color: #556b2f;">Valor</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Data/Hora">@context.RecordedAt.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Tipo">@context.SensorType</MudTd>
+                    <MudTd DataLabel="Valor">@context.Value.ToString("F2") @context.Unit</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager InfoFormat="{first_item}-{last_item} de {all_items}" />
+                </PagerContent>
+            </MudTable>
+        }
+        else
+        {
+            <MudText>Nenhum dado histórico encontrado para este fermentador.</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid FermenterId { get; set; }
+    [Parameter] public string FermenterName { get; set; } = string.Empty;
+
+    private List<MeasureHistoryDto>? readings;
+    private bool isLoading = true;
+
+    @* protected override async Task OnInitializedAsync()
+    {
+        readings = await DashboardService.GetFermenterHistoryAsync(FermenterId);
+        isLoading = false;
+    } *@
+
+    private void Close() => MudDialog.Cancel();
+}

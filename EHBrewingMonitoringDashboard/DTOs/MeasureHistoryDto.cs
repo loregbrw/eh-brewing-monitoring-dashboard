@@ -1,9 +1,9 @@
 namespace EHBrewingMonitoringDashboard.DTOs;
 
-using EHBrewingMonitoringDashboard.Enums;
-
-public record MeasureHistoryDto(
-    ESensorType Type,
+public record MeasureHistoryDto
+(
+    DateTime RecordedAt,
+    string SensorType,
     decimal Value,
-    DateTime RecordedAt
+    string Unit
 );

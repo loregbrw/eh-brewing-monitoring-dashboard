@@ -16,9 +16,10 @@ public class DashboardService(IDbContextFactory<AppDbContext> factory)
 
     public async Task<List<FermenterOverviewDto>> GetFermentersOverviewAsync()
     {
-         await using var context = await _factory.CreateDbContextAsync();
+        await using var context = await _factory.CreateDbContextAsync();
 
         var fermenters = await context.Fermenters.AsNoTracking()
+            .OrderBy(f => f.Name)
             .Where(f => f.Active)
             .Select(f => new FermenterOverviewDto(
                 f.Id,
@@ -47,23 +48,26 @@ public class DashboardService(IDbContextFactory<AppDbContext> factory)
         return fermenters;
     }
 
-    public async Task<List<MeasureHistoryDto>> GetFermenterHistoryAsync(Guid fermenterId, DateTime startDate)
+    public async Task<List<SensorMaintenanceDto>> GetTopSensorsMaintenanceAsync()
     {
         await using var context = await _factory.CreateDbContextAsync();
 
-        // Busca o histórico de medidas de sensores ativos do fermentador específico a partir de uma data
-        var history = await context.Measures.AsNoTracking()
-            .Where(m => m.Sensor.FermenterId == fermenterId 
-                     && m.Sensor.Active 
-                     && m.RecordedAt >= startDate)
-            .OrderBy(m => m.RecordedAt)
-            .Select(m => new MeasureHistoryDto(
-                m.Sensor.Type,
-                m.Value,
-                m.RecordedAt
-            ))
-            .ToListAsync();
-
-        return history;
+        return await context.Sensors
+            .AsNoTracking()
+            .Where(s => s.Active)
+            .Select(s => new
+            {
+                Name = $"{s.SerialNumber} ({s.Fermenter.Name}/{s.Type})",
+                Date = s.LastMaintenanceAt ?? s.InstalledAt
+            })
+            .ToListAsync()
+            .ContinueWith(t => t.Result
+                .Select(x => new SensorMaintenanceDto(
+                    x.Name,
+                    (DateTime.UtcNow - x.Date).Days
+                ))
+                .OrderByDescending(x => x.Days)
+                .Take(5)
+                .ToList());
     }
 }

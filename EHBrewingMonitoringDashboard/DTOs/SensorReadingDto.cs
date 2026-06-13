@@ -7,7 +7,8 @@ public record SensorReadingDto
     ESensorType Type,
     decimal? Value,
     string? MeasureUnit,
-    DateTime? RecordedAt
+    DateTime? RecordedAt,
+    string? SerialNumber = null
 )
 {
     public string DisplayValue => Value.HasValue ? $"{Value:F2}{MeasureUnit}" : "N/A";

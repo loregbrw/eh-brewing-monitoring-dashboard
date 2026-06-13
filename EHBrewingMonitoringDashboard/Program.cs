@@ -3,12 +3,10 @@ using EHBrewingMonitoringDashboard.Data;
 using EHBrewingMonitoringDashboard.Services;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using ApexCharts;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMudServices();
-builder.Services.AddApexCharts();
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(

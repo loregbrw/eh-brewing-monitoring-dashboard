@@ -1,216 +1,158 @@
 ﻿@page "/"
 
-@using ApexCharts
 @using EHBrewingMonitoringDashboard.DTOs
 @using EHBrewingMonitoringDashboard.Enums
 @using EHBrewingMonitoringDashboard.Services
+@using EHBrewingMonitoringDashboard.Components
 @using MudBlazor
 
 @inject DashboardService DashboardService
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
     @if (fermenters is null)
     {
-        <div class="loading">
-            <MudProgressCircular Indeterminate="true" />
+        <div class="d-flex justify-center mt-10">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
         </div>
     }
     else if (!fermenters.Any())
     {
-        <MudAlert Severity="Severity.Info">
-            Nenhum fermentador encontrado.
-        </MudAlert>
+        <MudAlert Severity="Severity.Info">Nenhum fermentador ativo encontrado.</MudAlert>
     }
     else
     {
         <MudGrid Spacing="3">
-
             @foreach (var fermenter in fermenters)
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
-
-                    <MudPaper
-                        Elevation="2"
-                        Class="pa-4 fermenter-card">
-
-                        <MudText
-                            Typo="Typo.subtitle2"
-                            Align="MudBlazor.Align.Center">
-
+                    <MudPaper Elevation="2" Class="pa-4 fermenter-card">
+                        <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center">
                             @fermenter.Name
-
                         </MudText>
 
                         <div class="d-flex justify-center align-center mt-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="MudBlazor.Color.Error" />
 
-                            <MudIcon
-                                Icon="@Icons.Material.Filled.Thermostat"
-                                Color="MudBlazor.Color.Error" />
-
-                            <MudText
-                                Typo="Typo.h5"
-                                Class="ml-2">
-
-                                @GetReadingValue(
-                                    fermenter,
-                                    ESensorType.TEMPERATURE)
-
+                            <MudText Typo="Typo.h5" Class="ml-2">
+                                @GetReadingValue(fermenter, ESensorType.TEMPERATURE)
                             </MudText>
-
                         </div>
 
                     </MudPaper>
-
                 </MudItem>
             }
-
         </MudGrid>
-
-        <MudGrid Class="mt-6" Spacing="3">
-
-            <MudItem xs="12" lg="8">
-
-                <MudPaper Class="pa-4">
-
-                    <MudText Typo="Typo.h6" Class="mb-4">
-                        Temperatura Atual dos Fermentadores
+        <br />
+        <MudGrid Spacing="3" Class="mb-6">
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="3" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;"></MudText>
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@allSensorsSeries" ChartLabels="@xAxisLabels"
+                              ChartOptions="@chartOptions" Width="100%" Height="auto" />
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="3" Class="pa-4" Style="background-color: #1c1c1c; border: 1px solid #2b2b2b;">
+                    <MudText Typo="Typo.h6" Class="mb-4" Style="color: white;">Tendência de Temperatura por Fermentador
                     </MudText>
 
-                    <ApexChart
-                        TItem="TemperaturePoint"
-                        Height="350">
-
-                        <ApexPointSeries
-                            TItem="TemperaturePoint"
-                            Items="temperatureData"
-                            Name="Temperatura"
-                            SeriesType="SeriesType.Bar"
-                            XValue="e => e.Name"
-                            YValue="e => e.Value" />
-
-                    </ApexChart>
-
+                    <MudChart ChartType="ChartType.Line" ChartSeries="@lineChartSeries" XAxisLabels="@xAxisLabels"
+                              ChartOptions="@chartOptions" Width="100%" Height="350px" />
                 </MudPaper>
-
             </MudItem>
-
-            <MudItem xs="12" lg="4">
-
-                <MudPaper Class="pa-4">
-
-                    <MudText Typo="Typo.h6" Class="mb-4">
-                        Sensores por Tipo
-                    </MudText>
-
-                    <ApexChart
-                        TItem="SensorSlice"
-                        Height="350">
-
-                        <ApexPointSeries
-                            TItem="SensorSlice"
-                            Items="sensorData"
-                            Name="Sensores"
-                            SeriesType="SeriesType.Donut"
-                            XValue="e => e.Name"
-                            YValue="e => e.Value" />
-
-                    </ApexChart>
-
-                </MudPaper>
-
-            </MudItem>
-
         </MudGrid>
     }
 
+    @* @if (allSensorsSeries is not null && allSensorsSeries.Any()) *@
+    @* { *@
+    @* } *@
 </MudContainer>
 
 <style>
-.loading {
-    display: flex;
-    justify-content: center;
-    margin-top: 80px;
-}
+    body {
+        background-color: #121212;
+    }
 
-.fermenter-card {
-    cursor: pointer;
-    transition: all .2s ease;
-}
+    .fermenter-card {
+        cursor: pointer;
+        transition: all .2s ease-in-out;
+    }
 
-.fermenter-card:hover {
-    transform: translateY(-4px);
-}
+    .fermenter-card:hover {
+        transform: translateY(-3px);
+    }
 </style>
 
 @code {
-
     private List<FermenterOverviewDto>? fermenters;
+    private List<ChartSeries<decimal>> allSensorsSeries = new();
+    private string[] xAxisLabels = Array.Empty<string>();
 
-    private List<TemperaturePoint> temperatureData = [];
+    private List<ChartSeries<decimal>> maintenanceSeries = new();
+    private string[] maintenanceLabels = Array.Empty<string>();
 
-    private List<SensorSlice> sensorData = [];
+    private ChartOptions chartOptions = new()
+    {
+        ChartPalette = new[] { "#556b2f", "#e67e22", "#3498db", "#9b59b6" }
+    };
+
+    private List<ChartSeries<decimal>> lineChartSeries = new();
 
     protected override async Task OnInitializedAsync()
     {
-        fermenters =
-            await DashboardService.GetFermentersOverviewAsync();
+        fermenters = await DashboardService.GetFermentersOverviewAsync();
 
-        if (fermenters is null)
-            return;
+        if (fermenters is not null && fermenters.Any())
+        {
+             xAxisLabels = fermenters.Select(f => f.Name).ToArray();
 
-        temperatureData =
-            fermenters
-                .Select(f => new TemperaturePoint
-                {
-                    Name = f.Name,
-                    Value = f.Readings
-                        .FirstOrDefault(r =>
-                            r.Type == ESensorType.TEMPERATURE)
-                        ?.Value ?? 0
-                })
+            var allSensorTypes = fermenters
+                .SelectMany(f => f.Readings)
+                .Select(r => r.Type)
+                .Distinct()
                 .ToList();
 
-        sensorData =
-        [
-            new()
+            foreach (var type in allSensorTypes)
             {
-                Name = "Temperature",
-                Value = fermenters.Sum(f =>
-                    f.Readings.Count(r =>
-                        r.Type == ESensorType.TEMPERATURE))
-            },
-
-            new()
-            {
-                Name = "Density",
-                Value = fermenters.Sum(f =>
-                    f.Readings.Count(r =>
-                        r.Type == ESensorType.DENSITY))
+                allSensorsSeries.Add(new ChartSeries<decimal>
+                {
+                    Name = type.ToString(),
+                    Data = fermenters.Select(f => GetReadingDecimal(f, type)).ToArray()
+                });
             }
-        ];
+
+            // Criando uma série de linha para Temperatura
+            lineChartSeries.Add(new ChartSeries<decimal>
+            {
+                Name = "Temperatura Média (°C)",
+                Data = fermenters.Select(f => GetReadingDecimal(f, ESensorType.TEMPERATURE)).ToArray()
+            });
+        }
     }
 
-    private string GetReadingValue(
-        FermenterOverviewDto dto,
-        ESensorType type)
+    private decimal GetReadingDecimal(FermenterOverviewDto dto, ESensorType type)
     {
-        var reading =
-            dto.Readings.FirstOrDefault(r =>
-                r.Type == type);
+        return dto.Readings.FirstOrDefault(r => r.Type == type)?.Value ?? 0m;
+    }
 
+    private string GetReadingValue(FermenterOverviewDto dto, ESensorType type)
+    {
+        var reading = dto.Readings.FirstOrDefault(r => r.Type == type);
         return reading?.DisplayValue ?? "-";
     }
 
-    public sealed class TemperaturePoint
+    private async Task OpenFermenterDetails(FermenterOverviewDto fermenter)
     {
-        public string Name { get; init; } = "";
-        public decimal Value { get; init; }
-    }
+        var parameters = new DialogParameters
+        {
+            { "FermenterId", fermenter.Id },
+            { "FermenterName", fermenter.Name }
+        };
 
-    public sealed class SensorSlice
-    {
-        public string Name { get; init; } = "";
-        public decimal Value { get; init; }
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        await DialogService.ShowAsync<FermenterHistoryDialog>($"Histórico: {fermenter.Name}", parameters, options);
     }
 }
