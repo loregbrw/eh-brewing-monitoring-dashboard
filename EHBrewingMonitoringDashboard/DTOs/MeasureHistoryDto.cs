@@ -1,9 +1,11 @@
+using EHBrewingMonitoringDashboard.Enums;
+
 namespace EHBrewingMonitoringDashboard.DTOs;
 
 public record MeasureHistoryDto
 (
     DateTime RecordedAt,
-    string SensorType,
+    ESensorType SensorType,
     decimal Value,
     string Unit
 );

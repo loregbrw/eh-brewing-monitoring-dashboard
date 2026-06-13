@@ -3,11 +3,11 @@
 @using EHBrewingMonitoringDashboard.DTOs
 @using EHBrewingMonitoringDashboard.Enums
 @using EHBrewingMonitoringDashboard.Services
-@using EHBrewingMonitoringDashboard.Components
 @using MudBlazor
 
 @inject DashboardService DashboardService
 @inject IDialogService DialogService
+@rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
@@ -41,23 +41,26 @@
             @foreach (var fermenter in fermenters)
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudPaper Elevation="2" Class="pa-4 fermenter-card" @onclick="() => OpenFermenterDetails(fermenter)">
-                        <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center">
-                            @fermenter.Name
-                        </MudText>
-
-                        <div class="d-flex justify-center align-center mt-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="MudBlazor.Color.Error" />
-
-                            @{
-                                var temp = fermenter.Readings.FirstOrDefault(r => r.Type == ESensorType.TEMPERATURE);
-                            }
-
-                            <MudText Typo="Typo.h5" Class="ml-2" Color="@GetStatusColor(temp?.Status ?? EStatus.NoData)">
-                                @GetReadingValue(temp)
+                    <div @onclick="() => OpenFermenterDetails(fermenter)">
+                        <MudPaper Elevation="2" Class="pa-4 fermenter-card">
+                            <MudText Typo="Typo.subtitle2" Align="MudBlazor.Align.Center">
+                                @fermenter.Name
                             </MudText>
-                        </div>
-                    </MudPaper>
+                            <span>@showModal</span>
+
+                            <div class="d-flex justify-center align-center mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="MudBlazor.Color.Error" />
+
+                                @{
+                                    var temp = fermenter.Readings.FirstOrDefault(r => r.Type == ESensorType.TEMPERATURE);
+                                }
+
+                                <MudText Typo="Typo.h5" Class="ml-2" Color="@GetStatusColor(temp?.Status ?? EStatus.NoData)">
+                                    @GetReadingValue(temp)
+                                </MudText>
+                            </div>
+                        </MudPaper>
+                    </div>
                 </MudItem>
             }
         }
@@ -105,6 +108,32 @@
 
     </MudGrid>
 
+    @if (showModal && selectedFermenter is not null)
+    {
+        <div class="modal-backdrop" @onclick="CloseModal">
+            <div class="modal-container" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <div class="header-info">
+                        <MudText Typo="Typo.h5">@selectedFermenter?.Name</MudText>
+
+                        <MudChip T="bool" Value="@selectedFermenter.Active" Size="Size.Small"
+                                 Color="@(selectedFermenter.Active ? Color.Success : Color.Error)">
+                            @(selectedFermenter.Active ? "Ativo" : "Inativo")
+                        </MudChip>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseModal" />
+                </div>
+
+                <div class="modal-content">
+                    @foreach (var sensor in selectedFermenter.Sensors)
+                    {
+                        <SensorCard Sensor="sensor" />
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
 </MudContainer>
 
 <style>
@@ -124,11 +153,12 @@
 
 @code {
     private List<FermenterOverviewDto>? fermenters;
-    private List<ChartSeries<decimal>> allSensorsSeries = new();
     private string[] xAxisLabels = Array.Empty<string>();
 
-    private List<FermenterStatusCountDto>? statusCounts;
+    private List<ChartSeries<decimal>> allSensorsSeries = new();
+
     private List<ChartSeries<int>> statusSeries = new();
+    private List<FermenterStatusCountDto>? statusCounts;
 
     private ChartOptions chartOptions = new()
     {
@@ -141,9 +171,11 @@
         ShowToolTips = true
     };
 
+    private FermenterDetailsDto? selectedFermenter;
+    private bool showModal;
+
     protected override async Task OnInitializedAsync()
     {
-        // 1. Carrega os cards e o gráfico de barras (Dados atuais)
         fermenters = await DashboardService.GetFermentersOverviewAsync();
 
         if (fermenters is not null && fermenters.Any())
@@ -203,14 +235,15 @@
 
     private async Task OpenFermenterDetails(FermenterOverviewDto fermenter)
     {
-        var parameters = new DialogParameters
-        {
-            { "FermenterId", fermenter.Id },
-            { "FermenterName", fermenter.Name }
-        };
+        selectedFermenter = await DashboardService.GetFermenterDetailsAsync(fermenter.Id);
+        showModal = true;
 
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        StateHasChanged();
+    }
 
-        await DialogService.ShowAsync<FermenterHistoryDialog>($"Histórico: {fermenter.Name}", parameters, options);
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedFermenter = null;
     }
 }
