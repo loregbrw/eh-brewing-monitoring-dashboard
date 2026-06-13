@@ -13,12 +13,12 @@ public record FermenterOverviewDto
     public SensorReadingDto? Temperature => Readings.FirstOrDefault(r => r.Type == ESensorType.TEMPERATURE);
     public SensorReadingDto? Density => Readings.FirstOrDefault(r => r.Type == ESensorType.DENSITY);
 
-    public EFermenterStatus Status =>
+    public EStatus Status =>
     Temperature switch
     {
-        null => EFermenterStatus.NoData,
-        { Value: >= 18 and <= 24 } => EFermenterStatus.Ok,
-        { Value: >= 15 and < 18 or > 24 and <= 27 } => EFermenterStatus.Warning,
-        _ => EFermenterStatus.Critical
+        null => EStatus.NoData,
+        { Value: >= 18 and <= 24 } => EStatus.Ok,
+        { Value: >= 15 and < 18 or > 24 and <= 27 } => EStatus.Warning,
+        _ => EStatus.Critical
     };
 }

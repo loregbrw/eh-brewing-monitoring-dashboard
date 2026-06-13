@@ -35,8 +35,12 @@
                         <div class="d-flex justify-center align-center mt-2">
                             <MudIcon Icon="@Icons.Material.Filled.Thermostat" Color="MudBlazor.Color.Error" />
 
-                            <MudText Typo="Typo.h5" Class="ml-2">
-                                @GetReadingValue(fermenter, ESensorType.TEMPERATURE)
+                            @{
+                                var temp = fermenter.Readings.FirstOrDefault(r => r.Type == ESensorType.TEMPERATURE);
+                            }
+
+                            <MudText Typo="Typo.h5" Class="ml-2" Color="@GetStatusColor(temp?.Status ?? EStatus.NoData)">
+                                @GetReadingValue(temp)
                             </MudText>
                         </div>
 
@@ -106,7 +110,7 @@
 
         if (fermenters is not null && fermenters.Any())
         {
-             xAxisLabels = fermenters.Select(f => f.Name).ToArray();
+            xAxisLabels = fermenters.Select(f => f.Name).ToArray();
 
             var allSensorTypes = fermenters
                 .SelectMany(f => f.Readings)
@@ -137,10 +141,20 @@
         return dto.Readings.FirstOrDefault(r => r.Type == type)?.Value ?? 0m;
     }
 
-    private string GetReadingValue(FermenterOverviewDto dto, ESensorType type)
+    private string GetReadingValue(SensorReadingDto? reading)
     {
-        var reading = dto.Readings.FirstOrDefault(r => r.Type == type);
         return reading?.DisplayValue ?? "-";
+    }
+
+    private MudBlazor.Color GetStatusColor(EStatus status)
+    {
+        return status switch
+        {
+            EStatus.Ok => MudBlazor.Color.Success,
+            EStatus.Warning => MudBlazor.Color.Warning,
+            EStatus.Critical => MudBlazor.Color.Error,
+            _ => MudBlazor.Color.Default
+        };
     }
 
     private async Task OpenFermenterDetails(FermenterOverviewDto fermenter)

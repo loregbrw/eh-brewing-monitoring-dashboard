@@ -59,6 +59,15 @@ public class SensorConfiguration : IEntityTypeConfiguration<Sensor>
             .WithMany(x => x.Sensors)
             .HasForeignKey(x => x.FermenterId);
 
+        builder.Property(x => x.IdealMaxValue)
+            .HasColumnName("ideal_max_value");
+
+        builder.Property(x => x.IdealMinValue)
+            .HasColumnName("ideal_min_value");
+
+        builder.Property(x => x.WarningTolerance)
+            .HasColumnName("warning_tolerance");
+
         builder.HasMany(x => x.Measures)
             .WithOne(x => x.Sensor)
             .HasForeignKey(x => x.SensorId);

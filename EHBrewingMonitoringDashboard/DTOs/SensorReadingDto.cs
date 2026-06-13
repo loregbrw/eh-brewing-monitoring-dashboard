@@ -8,6 +8,7 @@ public record SensorReadingDto
     decimal? Value,
     string? MeasureUnit,
     DateTime? RecordedAt,
+    EStatus Status,
     string? SerialNumber = null
 )
 {

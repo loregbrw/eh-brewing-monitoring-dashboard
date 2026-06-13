@@ -40,7 +40,10 @@ namespace EHBrewingMonitoringDashboard.Migrations
                     measure_unit = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     active = table.Column<bool>(type: "boolean", nullable: false),
                     installed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    last_maintenance_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    last_maintenance_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ideal_min_value = table.Column<decimal>(type: "numeric", nullable: true),
+                    ideal_max_value = table.Column<decimal>(type: "numeric", nullable: true),
+                    warning_tolerance = table.Column<decimal>(type: "numeric", nullable: true)
                 },
                 constraints: table =>
                 {

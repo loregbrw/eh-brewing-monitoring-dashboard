@@ -1,6 +1,6 @@
 namespace EHBrewingMonitoringDashboard.Enums;
 
-public enum EFermenterStatus
+public enum EStatus
 {
     Ok,
     Warning,

@@ -19,6 +19,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<SensorService>();
 
 var app = builder.Build();
 

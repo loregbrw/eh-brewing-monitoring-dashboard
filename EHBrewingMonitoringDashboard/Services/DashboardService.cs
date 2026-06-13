@@ -4,9 +4,10 @@ using EHBrewingMonitoringDashboard.Data;
 using EHBrewingMonitoringDashboard.DTOs;
 using Microsoft.EntityFrameworkCore;
 
-public class DashboardService(IDbContextFactory<AppDbContext> factory)
+public class DashboardService(IDbContextFactory<AppDbContext> factory, SensorService sensorService)
 {
     private readonly IDbContextFactory<AppDbContext> _factory = factory;
+    private readonly SensorService _sensorService = sensorService;
 
     public async Task<DateTime?> GetLasAtt()
     {
@@ -18,34 +19,51 @@ public class DashboardService(IDbContextFactory<AppDbContext> factory)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
-        var fermenters = await context.Fermenters.AsNoTracking()
-            .OrderBy(f => f.Name)
+        var fermenters = await context.Fermenters
+            .AsNoTracking()
             .Where(f => f.Active)
-            .Select(f => new FermenterOverviewDto(
+            .OrderBy(f => f.Name)
+            .Select(f => new
+            {
                 f.Id,
                 f.Name,
                 f.Active,
-                f.Sensors
+                Sensors = f.Sensors
                     .Where(s => s.Active)
                     .Select(s => new
                     {
-                        s.Type,
-                        s.MeasureUnit,
-                        LastMeasure = s.Measures.OrderByDescending(m => m.RecordedAt).FirstOrDefault()
+                        Sensor = s,
+                        LastMeasure = s.Measures
+                            .OrderByDescending(m => m.RecordedAt)
+                            .FirstOrDefault()
                     })
                     .Where(x => x.LastMeasure != null)
-                    .GroupBy(x => x.Type)
-                    .Select(g => new SensorReadingDto(
-                        g.Key,
-                        g.Average(x => x.LastMeasure!.Value),
-                        g.First().MeasureUnit,
-                        g.Max(x => x.LastMeasure!.RecordedAt)
-                    ))
                     .ToList()
-            ))
+            })
             .ToListAsync();
 
-        return fermenters;
+        return [.. fermenters
+                .Select(f => new FermenterOverviewDto(
+                    f.Id,
+                    f.Name,
+                    f.Active,
+                    [.. f.Sensors
+                        .GroupBy(x => x.Sensor.Type)
+                        .Select(g =>
+                        {
+                            var status = g.Max(x => _sensorService.GetStatusByValue(
+                                x.Sensor,
+                                x.LastMeasure!.Value));
+
+                            return new SensorReadingDto(
+                                g.Key,
+                                g.Average(x => x.LastMeasure!.Value),
+                                g.First().Sensor.MeasureUnit,
+                                g.Max(x => x.LastMeasure!.RecordedAt),
+                                status
+                            );
+                        })]
+                ))];
     }
 
     public async Task<List<SensorMaintenanceDto>> GetTopSensorsMaintenanceAsync()
